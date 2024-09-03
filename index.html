@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe Retro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #282c34;
+            color: #ffffff;
+            font-family: 'Press Start 2P', cursive;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .tic-tac-toe {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .indicator-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .indicator {
+            display: flex;
+            width: 200px;
+            height: 50px;
+            border: 2px solid #ffffff;
+            border-radius: 10px;
+            background-color: #000000;
+            overflow: hidden;
+            font-family: 'Press Start 2P', cursive;
+            position: relative;
+        }
+
+        .indicator div {
+            width: 50%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .indicator .x {
+            background-color: #000000;
+            color: #00f0ff;
+        }
+
+        .indicator .o {
+            background-color: #000000;
+            color: #ff00ff;
+        }
+
+        .indicator .x.active {
+            background-color: #00f0ff;
+            color: #000000;
+        }
+
+        .indicator .o.active {
+            background-color: #ff00ff;
+            color: #000000;
+        }
+
+        .notification {
+            font-size: 24px;
+            color: #ffeb3b;
+            font-family: 'Press Start 2P', cursive;
+            position: absolute;
+            top: -60px; /* Position above the board */
+            display: none;
+            text-align: center;
+            z-index: 10; /* Ensure notification is above other elements */
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 5px;
+            margin-bottom: 20px;
+        }
+
+        .square {
+            width: 100px;
+            height: 100px;
+            background-color: #1e1e1e;
+            border: 3px solid #61dafb;
+            color: #61dafb;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.3s, color 0.3s;
+            position: relative;
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        .square:hover {
+            background-color: #333;
+        }
+
+        .square.x-hover:hover {
+            background-color: #1e90ff;
+        }
+
+        .square.o-hover:hover {
+            background-color: #ff00ff;
+        }
+
+        .square.x {
+            color: #00f0ff;
+        }
+
+        .square.o {
+            color: #ff00ff;
+        }
+
+        .square.winning-square-x {
+            background-color: #00f0ff;
+            color: #ffffff;
+        }
+
+        .square.winning-square-o {
+            background-color: #ff00ff;
+            color: #ffffff;
+        }
+
+        .restart-button, .reset-score-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #61dafb;
+            border: none;
+            color: #ffffff;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        .restart-button:hover, .reset-score-button:hover {
+            background-color: #4fa3d4;
+        }
+
+        .scoreboard {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #ffffff;
+            font-family: 'Press Start 2P', cursive;
+            z-index: 1; /* Ensure scoreboard is below the notification */
+        }
+
+        .scoreboard div {
+            margin-bottom: 10px;
+        }
+
+        .scoreboard button {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="tic-tac-toe">
+            <div class="indicator-container">
+                <div class="indicator">
+                    <div class="x active">X</div>
+                    <div class="o">O</div>
+                </div>
+                <div class="notification" id="notification"></div>
+            </div>
+            <div class="board" id="board">
+                <div class="square" data-index="0"></div>
+                <div class="square" data-index="1"></div>
+                <div class="square" data-index="2"></div>
+                <div class="square" data-index="3"></div>
+                <div class="square" data-index="4"></div>
+                <div class="square" data-index="5"></div>
+                <div class="square" data-index="6"></div>
+                <div class="square" data-index="7"></div>
+                <div class="square" data-index="8"></div>
+            </div>
+            <button class="restart-button" id="restartButton">Restart Game</button>
+        </div>
+        <div class="scoreboard">
+            <div id="score">X: 0 | O: 0</div>
+            <button class="reset-score-button" id="resetScoreButton">Reset Scores</button>
+        </div>
+    </div>
+
+    <audio id="winSound" src="win-sound.mp3"></audio>
+
+    <script>
+        const board = Array(9).fill(null);
+        let xIsNext = true;
+        let scores = { X: 0, O: 0 };
+
+        const lines = [
+            [0, 1, 2], // top row
+            [3, 4, 5], // middle row
+            [6, 7, 8], // bottom row
+            [0, 3, 6], // left column
+            [1, 4, 7], // middle column
+            [2, 5, 8], // right column
+            [0, 4, 8], // diagonal from top-left to bottom-right
+            [2, 4, 6], // diagonal from top-right to bottom-left
+        ];
+
+        function updateIndicator() {
+            const xIndicator = document.querySelector('.indicator .x');
+            const oIndicator = document.querySelector('.indicator .o');
+            if (xIsNext) {
+                xIndicator.classList.add('active');
+                oIndicator.classList.remove('active');
+            } else {
+                xIndicator.classList.remove('active');
+                oIndicator.classList.add('active');
+            }
+        }
+
+        document.querySelectorAll('.square').forEach(square => {
+            square.addEventListener('mouseover', () => {
+                if (board[square.getAttribute('data-index')]) return;
+                if (xIsNext) {
+                    square.classList.add('x-hover');
+                    square.classList.remove('o-hover');
+                } else {
+                    square.classList.add('o-hover');
+                    square.classList.remove('x-hover');
+                }
+            });
+            square.addEventListener('mouseout', () => {
+                square.classList.remove('x-hover', 'o-hover');
+            });
+            square.addEventListener('click', () => {
+                const index = square.getAttribute('data-index');
+                if (board[index] || calculateWinner(board)) return;
+
+                board[index] = xIsNext ? 'X' : 'O';
+                square.textContent = board[index];
+                square.classList.add(board[index].toLowerCase());
+                xIsNext = !xIsNext;
+                updateIndicator();
+
+                const result = calculateWinner(board);
+                if (result) {
+                    const { winner, line } = result;
+                    playWinSound();
+                    showWinnerAnimation(winner);
+                    updateScore(winner);
+                    highlightWinningSquares(line, winner);
+                } else if (!board.includes(null)) {
+                    showTieAnimation();
+                }
+            });
+        });
+
+        function calculateWinner(squares) {
+            for (let i = 0; i < lines.length; i++) {
+                const [a, b, c] = lines[i];
+                if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+                    return { winner: squares[a], line: [a, b, c] };
+                }
+            }
+            return null;
+        }
+
+        function playWinSound() {
+            const winSound = document.getElementById('winSound');
+            winSound.play();
+        }
+
+        function showWinnerAnimation(winner) {
+            const notification = document.getElementById('notification');
+            notification.textContent = `${winner} Win!`;
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        function showTieAnimation() {
+            const notification = document.getElementById('notification');
+            notification.textContent = 'Match Tie!';
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        function highlightWinningSquares(line, winner) {
+            document.querySelectorAll('.square').forEach((square, index) => {
+                if (line.includes(index)) {
+                    square.classList.add(`winning-square-${winner.toLowerCase()}`);
+                }
+            });
+        }
+
+        function updateScore(winner) {
+            scores[winner]++;
+            document.getElementById('score').textContent = `X: ${scores.X} | O: ${scores.O}`;
+        }
+
+        document.getElementById('restartButton').addEventListener('click', () => {
+            board.fill(null);
+            xIsNext = true;
+            updateIndicator();
+            document.querySelectorAll('.square').forEach(square => {
+                square.textContent = '';
+                square.classList.remove('x', 'o', 'x-hover', 'o-hover', 'winning-square-x', 'winning-square-o');
+            });
+            document.getElementById('notification').style.display = 'none';
+        });
+
+        document.getElementById('resetScoreButton').addEventListener('click', () => {
+            scores = { X: 0, O: 0 };
+            document.getElementById('score').textContent = `X: ${scores.X} | O: ${scores.O}`;
+        });
+    </script>
+</body>
+</html>
